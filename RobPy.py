@@ -54,7 +54,7 @@ def tamanho_proj_vetores(v1: np.ndarray, v2: np.ndarray) -> float:
     :param v2: vetor (np.ndarray) coluna de 3 elementos
     :return: escalar: tamanho da projeção de v1 sobre v2
     """
-    pass
+    return np.abs(produto_escalar(v1, v2)) / norma_vetor(v2)
 
 
 def proj_vetores(v1: np.ndarray, v2: np.ndarray) -> np.ndarray:
@@ -209,11 +209,11 @@ def checa_matriz_rotacao(m3: np.ndarray, det_tol: float = 0.01) -> None:
     :return: não há
     """
     checa_matriz33(m3)
-    erro = np.abs(np.linalg.det(m3)-1)
+    error = np.abs(np.linalg.det(m3)-1)
     if det_tol < 0:
         raise ValueError('A tolerância do determinante deve ser um valor não negativo')
 
-    if erro > det_tol:
+    if error > det_tol:
         raise ValueError('matrizes de rotação devem possuir determinante unitário')
 
 
@@ -227,7 +227,12 @@ def cria_operador4(m_rot_b_a: np.ndarray = np.eye(3), v_o_a: np.ndarray = np.zer
     :param det_tol:
     :return:
     """
-    pass
+    checa_matriz_rotacao(m_rot_b_a, det_tol=det_tol)
+    checa_vetor3(v_o_a)
+
+    T = np.append(m_rot_b_a, v_o_a, axis=0)
+    return np.append(T, np.asarray([[0, 0, 0, 1]]), axis=0)
+
 
 
 def constroi_vetor(v_b: np.ndarray,
@@ -243,7 +248,12 @@ def constroi_vetor(v_b: np.ndarray,
     :param det_tol: tolerância do determinante
     :return: vetor (3, 1) na base a
     """
-    pass
+    checa_vetor3(v_b)
+
+    T = cria_operador4(m_rot_b_a=m_rot_b_a, v_o_a=v_o_a, det_tol=det_tol)
+    v_b4 = cria_vetor4(v_b)
+    v_a4 = T @ v_b4
+    return v_a4[0:3][:]
 
 
 # Parte 4
@@ -261,8 +271,14 @@ def __distancia_entre_retas_np(po1: np.ndarray, vs1: np.ndarray, po2: np.ndarray
     :param vs2: Vetor orientação da reta 1
     :return: distância entre as retas (float, positivo ou nulo)
     """
-    pass
-
+    checa_vetor3(po1)
+    checa_vetor3(vs1)
+    checa_vetor3(po2)
+    checa_vetor3(vs2)
+    v1 = po1 - po2
+    v2 = produto_vetorial(vs1, vs2)
+    v2 = v2/norma_vetor(v2)
+    return norma_vetor(proj_vetores(v1, v2))
 
 def __distancia_entre_retas_p(po1: np.ndarray, po2: np.ndarray, vs: np.ndarray) -> float:
     """
@@ -275,7 +291,14 @@ def __distancia_entre_retas_p(po1: np.ndarray, po2: np.ndarray, vs: np.ndarray) 
     :param vs: Vetor direção de ambas as retas
     :return: distância entre as retas (float, não negativo)
     """
-    pass
+    checa_vetor3(po1)
+    checa_vetor3(po2)
+    checa_vetor3(vs)
+
+    v1 = po1 - po2
+    v1p = proj_vetores(v1, vs)
+
+    return norma_vetor(v1 - v1p)
 
 
 def distancia_entre_retas(po1: np.ndarray, vs1: np.ndarray, po2: np.ndarray, vs2: np.ndarray, angtol=1e-3) -> float:
