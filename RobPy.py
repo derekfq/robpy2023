@@ -64,7 +64,7 @@ def proj_vetores(v1: np.ndarray, v2: np.ndarray) -> np.ndarray:
     :param v2: vetor (np.ndarray) coluna de 3 elementos
     :return: vetor (np.ndarray) coluna de 3 elementos com o resultado da projeção
     """
-    pass
+    return (produto_escalar(v1, v2) / produto_escalar(v2, v2)) * v2
 
 
 def ang_vetores(v1: np.ndarray, v2: np.ndarray) -> np.ndarray:
@@ -74,7 +74,8 @@ def ang_vetores(v1: np.ndarray, v2: np.ndarray) -> np.ndarray:
     :param v2: vetor (np.ndarray) coluna de 3 elementos
     :return: escalar: ângulo em radianos
     """
-    pass
+    return np.arccos(produto_escalar(v1, v2) /
+                     (norma_vetor(v1) * norma_vetor(v2)))
 
 
 def produto_vetorial(v1: np.ndarray, v2: np.ndarray) -> np.ndarray:
@@ -84,17 +85,19 @@ def produto_vetorial(v1: np.ndarray, v2: np.ndarray) -> np.ndarray:
     :param v2: vetor (np.ndarray) coluna de 3 elementos
     :return: vetor (np.ndarray) coluna de 3 elementos com o resultado de v1 x v2
     """
-    pass
+    return np.asarray([[v1[1][0] * v2[2][0] - v1[2][0] * v2[1][0]],
+                       [v1[2][0] * v2[0][0] - v1[0][0] * v2[2][0]],
+                       [v1[0][0] * v2[1][0] - v1[1][0] * v2[0][0]]])
 
 
 # Parte 2
 
 
 def plota_vetor3(v: np.ndarray,
-                 ax: plot.Axes,
                  *args,
                  vo: np.ndarray = np.zeros([3, 1]),
-                 zdir='z', **kwargs) -> list:
+                 color='b',
+                 **kwargs) -> list:
     """
     Utiliza o pacote matplotlib.plotpy para plotar um vetor em um diagrama 3D. É necessário utilizar eixos criados com o
     comando matplotlib.plotly.axis(projection='3d').
@@ -108,7 +111,19 @@ def plota_vetor3(v: np.ndarray,
     :param kwargs: parâmetros padrão do plot.
     :return: lista de elementos de linha do vetor plotado.
     """
-    pass
+    a = plot.plot([vo[0][0], v[0][0] + vo[0][0]],
+                  [vo[1][0], v[1][0] + vo[1][0]],
+                  [vo[2][0], v[2][0] + vo[2][0]],
+                  linewidth=4,
+                  color=color)
+    b = plot.plot(v[0][0] + vo[0][0],
+                  v[1][0] + vo[1][0],
+                  v[2][0] + vo[2][0],
+                  marker='>',
+                  markersize=15,
+                  color=color)
+
+    return [a, b]
 
 
 def matriz_rotacao_x(theta: float) -> np.ndarray:
@@ -234,7 +249,6 @@ def cria_operador4(m_rot_b_a: np.ndarray = np.eye(3), v_o_a: np.ndarray = np.zer
     return np.append(T, np.asarray([[0, 0, 0, 1]]), axis=0)
 
 
-
 def constroi_vetor(v_b: np.ndarray,
                    m_rot_b_a: np.ndarray = np.eye(3),
                    v_o_a: np.ndarray = np.zeros([3, 1]),
@@ -301,7 +315,7 @@ def __distancia_entre_retas_p(po1: np.ndarray, po2: np.ndarray, vs: np.ndarray) 
     return norma_vetor(v1 - v1p)
 
 
-def distancia_entre_retas(po1: np.ndarray, vs1: np.ndarray, po2: np.ndarray, vs2: np.ndarray, angtol=1e-3) -> float:
+def distancia_entre_retas(po1: np.ndarray, vs1: np.ndarray, po2: np.ndarray, vs2: np.ndarray, angtol: float = 1e-3) -> float:
     """
     Calcula a distância entre duas retas no espaço.
     Um ponto na reta i é dado por: Pi = poi + vsi*t, sendo t um parâmetro livre.
@@ -312,10 +326,16 @@ def distancia_entre_retas(po1: np.ndarray, vs1: np.ndarray, po2: np.ndarray, vs2
     :param angtol: Tolerância de ângulo entre as retas para decidir se são paralelas
     :return: Distância entre as retas (float, positivo ou nulo)
     """
-    pass
+    if angtol < 0:
+        raise ValueError('A tolerância angular não deve ser negativa')
+    ang = np.abs(ang_vetores(vs1, vs2))
+    if (ang < angtol) or (np.abs(ang - np.pi/2) < angtol):
+        return __distancia_entre_retas_p(po1, po2, vs1)
+    else:
+        return __distancia_entre_retas_np(po1, vs1, po2, vs2)
 
 
-def __eixo_reta_12_np(po1: np.ndarray, vs1: np.ndarray, po2: np.ndarray, vs2: np.ndarray) -> float:
+def __eixo_reta_12_np(po1: np.ndarray, vs1: np.ndarray, po2: np.ndarray, vs2: np.ndarray) -> np.ndarray:
     """
     *** FUNÇÃO INTERNA AO MÓDULO ***
     Calcula um vetor unitário perpendicular às retas 1 e 2 que aponta necessariamente da reta 1 à reta 2. As retas não
@@ -326,10 +346,13 @@ def __eixo_reta_12_np(po1: np.ndarray, vs1: np.ndarray, po2: np.ndarray, vs2: np
     :param vs2: Vetor orientação da reta 1
     :return: vetor unitário que aponta da reta 1 à reta 2
     """
-    pass
+    e = produto_vetorial(vs1, vs2)
+    e = e / norma_vetor(e)
+    d = po2 - po1
+    return e * np.sign(produto_escalar(d, e))
 
 
-def __eixo_reta_12_p(po1: np.ndarray, po2: np.ndarray, vs: np.ndarray) -> float:
+def __eixo_reta_12_p(po1: np.ndarray, po2: np.ndarray, vs: np.ndarray) -> np.ndarray:
     """
     *** FUNÇÃO INTERNA AO MÓDULO ***
     Calcula um vetor unitário que vai da reta 1 à reta 2 necessariamente. As retas devem ser paralelas
@@ -338,10 +361,13 @@ def __eixo_reta_12_p(po1: np.ndarray, po2: np.ndarray, vs: np.ndarray) -> float:
     :param vs: Vetor direção de ambas as retas
     :return: vetor unitário que aponta da reta 1 à reta 2
     """
-    pass
+    d = po2 - po1
+    dp = proj_vetores(d, vs)
+    e = d - dp
+    return e / norma_vetor(e)
 
 
-def eixo_reta_12(po1: np.ndarray, vs1: np.ndarray, po2: np.ndarray, vs2: np.ndarray, angtol=1e-3) -> float:
+def eixo_reta_12(po1: np.ndarray, vs1: np.ndarray, po2: np.ndarray, vs2: np.ndarray, angtol=1e-3) -> np.ndarray:
     """
     Calcula um vetor unitário que aponta da reta 1 à reta 2, independente de sua orientação.
     :param po1: Vetor posição de um ponto de referência na reta 1
@@ -351,7 +377,18 @@ def eixo_reta_12(po1: np.ndarray, vs1: np.ndarray, po2: np.ndarray, vs2: np.ndar
     :param angtol: Tolerância de ângulo entre as retas para decidir se são paralelas
     :return: vetor unitário que aponta da reta 1 à reta 2
     """
-    pass
+    checa_vetor3(po1)
+    checa_vetor3(vs1)
+    checa_vetor3(po2)
+    checa_vetor3(vs2)
+
+    if angtol < 0:
+        raise ValueError('A tolerância angular não deve ser negativa')
+    ang = np.abs(ang_vetores(vs1, vs2))
+    if (ang < angtol) or (np.abs(ang - np.pi/2) < angtol):
+        return __eixo_reta_12_p(po1, po2, vs1)
+    else:
+        return __eixo_reta_12_np(po1, vs1, po2, vs2)
 
 
 def ang_twist_dir_nc_rad(po1: np.ndarray, vs1: np.ndarray, po2: np.ndarray, vs2: np.ndarray, angtol=1e-3) -> float:
